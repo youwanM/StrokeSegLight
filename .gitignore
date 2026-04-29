@@ -1,0 +1,14 @@
+ATLAS_R2.1_preprocessed/
+nnUNet*/
+__pycache__/
+
+
+*.nii.gz
+*.csv
+*.png
+*.json
+*.pth
+*.onnx
+*.onnx.data
+
+

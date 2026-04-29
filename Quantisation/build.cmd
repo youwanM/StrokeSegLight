@@ -1,0 +1,1 @@
+python -m PyInstaller --noconfirm --onefile --windowed --name "nnUNet_to_ONNX" --collect-all nnunetv2 --collect-all batchgenerators --collect-all onnxruntime --hidden-import onnxruntime.transformers.fusion_utils convertONNXgui.py

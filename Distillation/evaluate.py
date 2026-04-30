@@ -68,7 +68,7 @@ def post_process_mask(mask_array, spacing, min_vol_ml=0.025):
     min_voxels = int(np.ceil(min_vol_mm3 / voxel_vol_mm3))
     
     mask_bool = mask_array > 0
-    mask_bool = remove_small_objects(mask_bool, min_size=min_voxels)
+    mask_bool = remove_small_objects(mask_bool, max_size=min_voxels - 1)
     
     # 2. Fill holes (handling anisotropy)
     # SimpleITK spacing is (x, y, z), Numpy shape is (z, y, x)

@@ -18,7 +18,7 @@ from nnunetv2.utilities.helpers import dummy_context
 from batchgenerators.utilities.file_and_folder_operations import load_json, join
 
 # --- IMPORT ALL STUDENT SIZES ---
-from models import get_light_student, get_small_student, get_medium_student, get_large_student
+from models import get_extra_extralight_student, get_extra_light_student, get_light_student, get_small_student, get_medium_student, get_large_student
 
 
 # =========================================================================
@@ -147,6 +147,13 @@ class nnUNetTrainer_KD_Light(nnUNetTrainer_KD_Base):
     def build_network_architecture(self, plans_manager, configuration_manager, num_input_channels, num_output_channels, enable_deep_supervision=True):
         return get_light_student()
 
+class nnUNetTrainer_KD_ExtraLight(nnUNetTrainer_KD_Base):
+    def build_network_architecture(self, plans_manager, configuration_manager, num_input_channels, num_output_channels, enable_deep_supervision=True):
+        return get_extra_light_student()
+
+class nnUNetTrainer_KD_ExtraExtraLight(nnUNetTrainer_KD_Base):
+    def build_network_architecture(self, plans_manager, configuration_manager, num_input_channels, num_output_channels, enable_deep_supervision=True):
+        return get_extra_extralight_student()
 
 # =========================================================================
 # EXECUTION
@@ -162,7 +169,7 @@ def run_custom_kd_training(dataset_id: int, configuration: str, fold: int):
     
     dataset_json = load_json(join(nnUNet_preprocessed, dataset_name, 'dataset.json'))
     
-    trainer = nnUNetTrainer_KD_Large( 
+    trainer = nnUNetTrainer_KD_ExtraExtraLight( 
         plans=plans,
         configuration=configuration,
         fold=fold,
@@ -173,6 +180,7 @@ def run_custom_kd_training(dataset_id: int, configuration: str, fold: int):
     trainer.initialize()
     trainer.save_every = 1
     checkpoint_path = join(trainer.output_folder, 'checkpoint_latest.pth')
+    print("Number of trainable parameters in the student model:", sum(p.numel() for p in trainer.network.parameters() if p.requires_grad))
     
     if os.path.isfile(checkpoint_path):
         trainer.print_to_log_file(f"Found existing checkpoint! Resuming from: {checkpoint_path}")

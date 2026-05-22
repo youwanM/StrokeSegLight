@@ -10,5 +10,6 @@ __pycache__/
 *.pth
 *.onnx
 *.onnx.data
+*.log
 
 

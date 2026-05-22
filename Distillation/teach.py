@@ -18,7 +18,7 @@ from nnunetv2.utilities.helpers import dummy_context
 from batchgenerators.utilities.file_and_folder_operations import load_json, join
 
 # --- IMPORT ALL STUDENT SIZES ---
-from models import get_extra_extralight_student, get_extra_light_student, get_light_student, get_small_student, get_medium_student, get_large_student
+from models import get_femto_student, get_pico_student, get_nano_student, get_extra_extralight_student, get_extra_light_student, get_light_student, get_small_student, get_medium_student, get_large_student
 
 
 # =========================================================================
@@ -154,6 +154,18 @@ class nnUNetTrainer_KD_ExtraLight(nnUNetTrainer_KD_Base):
 class nnUNetTrainer_KD_ExtraExtraLight(nnUNetTrainer_KD_Base):
     def build_network_architecture(self, plans_manager, configuration_manager, num_input_channels, num_output_channels, enable_deep_supervision=True):
         return get_extra_extralight_student()
+
+class nnUNetTrainer_KD_Pico(nnUNetTrainer_KD_Base):
+    def build_network_architecture(self, plans_manager, configuration_manager, num_input_channels, num_output_channels, enable_deep_supervision=True):
+        return get_pico_student()
+
+class nnUNetTrainer_KD_Femto(nnUNetTrainer_KD_Base):
+    def build_network_architecture(self, plans_manager, configuration_manager, num_input_channels, num_output_channels, enable_deep_supervision=True):
+        return get_femto_student()
+
+class nnUNetTrainer_KD_Nano(nnUNetTrainer_KD_Base):
+    def build_network_architecture(self, plans_manager, configuration_manager, num_input_channels, num_output_channels, enable_deep_supervision=True):
+        return get_nano_student()
 
 # =========================================================================
 # EXECUTION

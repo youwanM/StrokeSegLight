@@ -135,6 +135,76 @@ def get_extra_extralight_student():
         deep_supervision=False
     )
 
+def get_nano_student():
+    """
+    ~ 0.5M - 1M Parameters.
+    Designed to test the absolute lower bounds of capacity.
+    """
+    return ResidualEncoderUNet(
+        input_channels=1, 
+        n_stages=6, 
+        # Halving the initial channels from ExtraExtraLight and flattening the bottleneck
+        features_per_stage=(4, 8, 16, 32, 48, 48), 
+        conv_op=nn.Conv3d, 
+        kernel_sizes=[[3,3,3]]*6, 
+        strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
+        # Reduced blocks to the bare minimum for a Residual network
+        n_blocks_per_stage=(1, 1, 2, 2, 2, 2), 
+        num_classes=2, 
+        n_conv_per_stage_decoder=(1, 1, 1, 1, 1),
+        conv_bias=True, 
+        norm_op=nn.InstanceNorm3d, 
+        norm_op_kwargs={'eps': 1e-5, 'affine': True},
+        nonlin=nn.LeakyReLU, 
+        nonlin_kwargs={'inplace': True}, 
+        deep_supervision=False
+    )
+
+def get_pico_student():
+    """
+    ~ 100K - 150K Parameters.
+    Strictly smaller than Nano. Drops base channels to 2 while maintaining structural depth.
+    """
+    return ResidualEncoderUNet(
+        input_channels=1, 
+        n_stages=6, 
+        features_per_stage=(2, 4, 8, 16, 24, 24),
+        conv_op=nn.Conv3d, 
+        kernel_sizes=[[3,3,3]]*6, 
+        strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
+        n_blocks_per_stage=(1, 1, 2, 2, 2, 2),     
+        num_classes=2, 
+        n_conv_per_stage_decoder=(1, 1, 1, 1, 1),
+        conv_bias=True, 
+        norm_op=nn.InstanceNorm3d, 
+        norm_op_kwargs={'eps': 1e-5, 'affine': True},
+        nonlin=nn.LeakyReLU, 
+        nonlin_kwargs={'inplace': True}, 
+        deep_supervision=False
+    )
+
+def get_femto_student():
+    """
+    ~ 30K - 40K Parameters.
+    An absolute extreme capacity test. The first layer operates with only 1 filter.
+    """
+    return ResidualEncoderUNet(
+        input_channels=1, 
+        n_stages=6, 
+        features_per_stage=(1, 2, 4, 8, 12, 12), 
+        conv_op=nn.Conv3d, 
+        kernel_sizes=[[3,3,3]]*6, 
+        strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
+        n_blocks_per_stage=(1, 1, 2, 2, 2, 2),     
+        num_classes=2, 
+        n_conv_per_stage_decoder=(1, 1, 1, 1, 1),
+        conv_bias=True, 
+        norm_op=nn.InstanceNorm3d, 
+        norm_op_kwargs={'eps': 1e-5, 'affine': True},
+        nonlin=nn.LeakyReLU, 
+        nonlin_kwargs={'inplace': True}, 
+        deep_supervision=False
+    )
 
     """
     Halved-capacity Residual Encoder UNet.

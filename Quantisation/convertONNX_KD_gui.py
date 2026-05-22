@@ -20,83 +20,7 @@ from onnxruntime.quantization import quantize_dynamic, QuantType
 # =========================================================================
 # CUSTOM KD STUDENT ARCHITECTURES
 # =========================================================================
-
-def get_large_student(input_channels, num_classes):
-    return ResidualEncoderUNet(
-        input_channels=input_channels, 
-        n_stages=6, 
-        features_per_stage=(28, 56, 112, 224, 320, 320),
-        conv_op=nn.Conv3d, 
-        kernel_sizes=[[3,3,3]]*6, 
-        strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
-        n_blocks_per_stage=(1, 2, 3, 3, 3, 3), 
-        num_classes=num_classes, 
-        n_conv_per_stage_decoder=(1, 1, 1, 1, 1),
-        conv_bias=True, 
-        norm_op=nn.InstanceNorm3d, 
-        norm_op_kwargs={'eps': 1e-5, 'affine': True},
-        nonlin=nn.LeakyReLU, 
-        nonlin_kwargs={'inplace': True}, 
-        deep_supervision=False # Critical for ONNX
-    )
-
-def get_medium_student(input_channels, num_classes):
-    return ResidualEncoderUNet(
-        input_channels=input_channels, 
-        n_stages=6, 
-        features_per_stage=(24, 48, 96, 192, 256, 256), 
-        conv_op=nn.Conv3d, 
-        kernel_sizes=[[3,3,3]]*6, 
-        strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
-        n_blocks_per_stage=(1, 2, 3, 3, 3, 3), 
-        num_classes=num_classes, 
-        n_conv_per_stage_decoder=(1, 1, 1, 1, 1),
-        conv_bias=True, 
-        norm_op=nn.InstanceNorm3d, 
-        norm_op_kwargs={'eps': 1e-5, 'affine': True},
-        nonlin=nn.LeakyReLU, 
-        nonlin_kwargs={'inplace': True}, 
-        deep_supervision=False
-    )
-
-def get_small_student(input_channels, num_classes):
-    return ResidualEncoderUNet(
-        input_channels=input_channels, 
-        n_stages=6, 
-        features_per_stage=(20, 40, 80, 160, 200, 200), 
-        conv_op=nn.Conv3d, 
-        kernel_sizes=[[3,3,3]]*6, 
-        strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
-        n_blocks_per_stage=(1, 2, 2, 2, 2, 2), 
-        num_classes=num_classes, 
-        n_conv_per_stage_decoder=(1, 1, 1, 1, 1),
-        conv_bias=True, 
-        norm_op=nn.InstanceNorm3d, 
-        norm_op_kwargs={'eps': 1e-5, 'affine': True},
-        nonlin=nn.LeakyReLU, 
-        nonlin_kwargs={'inplace': True}, 
-        deep_supervision=False
-    )
-
-def get_light_student(input_channels, num_classes):
-    return ResidualEncoderUNet(
-        input_channels=input_channels, 
-        n_stages=6, 
-        features_per_stage=(16, 32, 64, 128, 160, 160), 
-        conv_op=nn.Conv3d, 
-        kernel_sizes=[[3,3,3]]*6, 
-        strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
-        n_blocks_per_stage=(1, 1, 2, 2, 2, 2), 
-        num_classes=num_classes, 
-        n_conv_per_stage_decoder=(1, 1, 1, 1, 1),
-        conv_bias=True, 
-        norm_op=nn.InstanceNorm3d, 
-        norm_op_kwargs={'eps': 1e-5, 'affine': True},
-        nonlin=nn.LeakyReLU, 
-        nonlin_kwargs={'inplace': True}, 
-        deep_supervision=False
-    )
-
+from models import *
 # =========================================================================
 # EXPORTER APPLICATION
 # =========================================================================
@@ -124,7 +48,12 @@ class nnUNetExporter:
             "KD Student - Large", 
             "KD Student - Medium", 
             "KD Student - Small", 
-            "KD Student - Light"
+            "KD Student - Light",
+            "KD Student - Extra Light",
+            "KD Student - Extra Extra Light",
+            "KD Student - Nano",
+            "KD Student - Pico",
+            "KD Student - Femto"
         ]
         self.selected_arch = tk.StringVar(value=self.arch_options[0])
 
@@ -237,13 +166,23 @@ class nnUNetExporter:
                 deep_supervision=False 
             )
         elif arch_type == "KD Student - Large":
-            network = get_large_student(num_input_channels, num_output_channels)
+            network = get_large_student()
         elif arch_type == "KD Student - Medium":
-            network = get_medium_student(num_input_channels, num_output_channels)
+            network = get_medium_student()
         elif arch_type == "KD Student - Small":
-            network = get_small_student(num_input_channels, num_output_channels)
+            network = get_small_student()
         elif arch_type == "KD Student - Light":
-            network = get_light_student(num_input_channels, num_output_channels)
+            network = get_light_student()
+        elif arch_type == "KD Student - Extra Light":
+            network = get_extra_light_student()
+        elif arch_type == "KD Student - Extra Extra Light":
+            network = get_extra_extralight_student()
+        elif arch_type == "KD Student - Nano":
+            network = get_nano_student()
+        elif arch_type == "KD Student - Pico":
+            network = get_pico_student()
+        elif arch_type == "KD Student - Femto":
+            network = get_femto_student()
         else:
             raise ValueError(f"Unknown architecture selected: {arch_type}")
 

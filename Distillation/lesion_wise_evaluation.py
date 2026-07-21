@@ -10,9 +10,9 @@ from tqdm import tqdm
 import datetime
 
 # 1. Environment Setup
-os.environ['nnUNet_raw'] = "/home/ymahe/Desktop/StrokeSegLight/Distillation/nnUNet_raw"
-os.environ['nnUNet_preprocessed'] = "/home/ymahe/Desktop/StrokeSegLight/Distillation/nnUNet_preprocessed"
-os.environ['nnUNet_results'] = "/home/ymahe/Desktop/StrokeSegLight/Distillation/nnUNet_results"
+os.environ['nnUNet_raw'] = "/path/to/nnUNet_raw"
+os.environ['nnUNet_preprocessed'] = "/path/to/nnUNet_preprocessed"
+os.environ['nnUNet_results'] = "/path/to/nnUNet_results"
 
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager

@@ -1,9 +1,9 @@
 import os
 
 # 1. Manually set your ENV variables
-os.environ['nnUNet_raw'] = "/home/ymahe/Desktop/StrokeSegLight/Distillation/nnUNet_raw"
-os.environ['nnUNet_preprocessed'] = "/home/ymahe/Desktop/StrokeSegLight/Distillation/nnUNet_preprocessed"
-os.environ['nnUNet_results'] = "/home/ymahe/Desktop/StrokeSegLight/Distillation/nnUNet_results"
+os.environ['nnUNet_raw'] = "/path/to/nnUNet_raw"
+os.environ['nnUNet_preprocessed'] = "/path/to/nnUNet_preprocessed"
+os.environ['nnUNet_results'] = "/path/to/nnUNet_results"
 
 import torch
 import torch.nn as nn

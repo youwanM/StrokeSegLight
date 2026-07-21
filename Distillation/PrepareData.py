@@ -7,9 +7,9 @@ from pathlib import Path
 from nilearn.image import resample_to_img # Requires: pip install nilearn
 
 # 1. Environment Setup
-os.environ['nnUNet_raw'] = "/home/ymahe/Desktop/StrokeSegLight/Distillation/nnUNet_raw"
-os.environ['nnUNet_preprocessed'] = "/home/ymahe/Desktop/StrokeSegLight/Distillation/nnUNet_preprocessed"
-os.environ['nnUNet_results'] = "/home/ymahe/Desktop/StrokeSegLight/Distillation/nnUNet_results"
+os.environ['nnUNet_raw'] = "/path/to/nnUNet_raw"
+os.environ['nnUNet_preprocessed'] = "/path/to/nnUNet_preprocessed"
+os.environ['nnUNet_results'] = "/path/to/nnUNet_results"
 
 base_dir = Path("/home/ymahe/Desktop/Datasets/ATLAS_2")
 images_dir = base_dir / "preprocessed"

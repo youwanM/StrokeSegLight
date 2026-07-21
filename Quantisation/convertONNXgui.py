@@ -124,15 +124,56 @@ class nnUNetExporter:
         plans = load_json(str(plans_file))
         dataset_json = load_json(str(dataset_file))
         
-        # Extract architecture configuration
+        # Extract configuration
         config = plans["configurations"]["3d_fullres"]
         num_input_channels = len(dataset_json["channel_names"])
-        num_output_channels = len(dataset_json["labels"])        
+        num_output_channels = len(dataset_json["labels"])
+        patch_size = config.get("patch_size", [128, 128, 128])
+        
+        # --- FIX: Support both old and new nnU-Net v2 plans.json formats ---
+        if 'architecture' in config:
+            # Newer nnU-Net v2 format
+            network_class_name = config['architecture']['network_class_name']
+            arch_kwargs = config['architecture']['arch_kwargs']
+            _kw_requires_import = config['architecture']['_kw_requires_import']
+        else:
+            # Older nnU-Net v2 format (Fallback for datasets like BraTS19)
+            network_class_name = "dynamic_network_architectures.architectures.unet.PlainConvUNet"
+            
+            # Dynamically calculate features per stage exactly as nnU-Net does internally
+            base_features = config["UNet_base_num_features"]
+            max_features = config["unet_max_num_features"]
+            num_stages = len(config["conv_kernel_sizes"])
+            features_per_stage = [min(base_features * (2 ** i), max_features) for i in range(num_stages)]
+            
+            is_3d = len(patch_size) == 3
+            
+            # Reconstruct the arch_kwargs dictionary dynamically
+            arch_kwargs = {
+                "n_stages": num_stages,
+                "features_per_stage": features_per_stage,
+                "conv_op": "torch.nn.modules.conv.Conv3d" if is_3d else "torch.nn.modules.conv.Conv2d",
+                "kernel_sizes": config["conv_kernel_sizes"],
+                "strides": config["pool_op_kernel_sizes"],
+                "n_conv_per_stage": config["n_conv_per_stage_encoder"],
+                "n_conv_per_stage_decoder": config["n_conv_per_stage_decoder"],
+                "conv_bias": True,
+                "norm_op": "torch.nn.modules.instancenorm.InstanceNorm3d" if is_3d else "torch.nn.modules.instancenorm.InstanceNorm2d",
+                "norm_op_kwargs": {"eps": 1e-05, "affine": True},
+                "dropout_op": None,
+                "dropout_op_kwargs": None,
+                "nonlin": "torch.nn.modules.activation.LeakyReLU",
+                "nonlin_kwargs": {"inplace": True}
+            }
+            # Tells nnU-Net which strings need to be instantiated into PyTorch modules
+            _kw_requires_import = ["conv_op", "norm_op", "dropout_op", "nonlin"]
+        # -------------------------------------------------------------------
+
         # Build network dynamically
         network = get_network_from_plans(
-            config['architecture']['network_class_name'],
-            config['architecture']['arch_kwargs'],
-            config['architecture']['_kw_requires_import'],
+            network_class_name,
+            arch_kwargs,
+            _kw_requires_import,
             num_input_channels,
             num_output_channels,
             allow_init=True,
@@ -142,7 +183,9 @@ class nnUNetExporter:
         checkpoint = torch.load(pth_file, map_location='cpu', weights_only=False)
         network.load_state_dict(checkpoint['network_weights'])
         network.eval()
-        return network, num_input_channels
+        
+        # Return patch_size as well so the dummy tensor is scaled correctly
+        return network, num_input_channels, patch_size
 
     def convert(self):
         try:
@@ -157,15 +200,18 @@ class nnUNetExporter:
             self.btn.config(text="CONVERTING...", state="disabled", bg="#9E9E9E")
             self.root.update()
 
-            model, channels = self.get_nnunet_model(pth_file, plans_file, dataset_file)
-            dummy_input = torch.randn(1, channels, 128, 128, 128)
+            # Unpack the dynamically retrieved patch_size
+            model, channels, patch_size = self.get_nnunet_model(pth_file, plans_file, dataset_file)
+            
+            # Use the correct patch size dynamically instead of a hardcoded 128x128x128
+            dummy_input = torch.randn(1, channels, *patch_size)
             
             # Intermediate FP32 export
             tmp_fp32 = out_file if "No Quantization" in self.selected_quant.get() else "temp_fp32.onnx"
             
             torch.onnx.export(model, dummy_input, tmp_fp32, opset_version=18, 
                               input_names=['input'], output_names=['output'],
-                              # Only make the batch size dynamic, leave spatial dims fixed at 128x128x128
+                              # Only make the batch size dynamic, leave spatial dims fixed to patch_size
                               dynamic_axes={'input': {0: 'batch'}, 'output': {0: 'batch'}})
 
             # Apply Quantization from list selection

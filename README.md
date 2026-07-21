@@ -5,7 +5,7 @@ Experimental code for reproducing model distillation, quantisation, evaluation, 
 > [!IMPORTANT]
 > This repository contains **research/reproduction scripts**, not the end-user clinical software application.
 > 
-> The StrokeSeg2 software documentation is available at: https://strokeseg-doc.readthedocs.io/
+> The StrokeSeg2 software documentation is available at: https://strokeseg.readthedocs.io/
 
 ## What this repository supports
 
@@ -114,4 +114,4 @@ If you use this code, please cite:
 - **StrokeSeg2: Stroke Lesion Segmentation in Clinical Research Workflows**
 
 For the software application (separate from this repository), refer to:
-- https://strokeseg-doc.readthedocs.io/
+- https://strokeseg.readthedocs.io/

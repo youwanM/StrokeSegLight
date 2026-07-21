@@ -26,7 +26,7 @@ This codebase is organized around the paper experiments:
 │   ├── prepareTest.py                # Extract ATLAS v2.1 test split into nnU-Net-style image/mask files
 │   ├── teach.py                      # Custom nnU-Net KD trainer (teacher+student, T=4.0, alpha=0.5,
 │   │                                 # 1000 epochs, teacher checkpoint loading, frozen teacher)
-│   ├── models.py                     # Student 3D ResidualEncoderUNet size variants (large -> femto/pico/nano)
+│   ├── models.py                     # Student 3D ResidualEncoderUNet size variants
 │   ├── lesion_wise_evaluation.py     # Lesion-wise evaluation helper
 │   ├── quantisation_equivalence.py   # Quantisation output consistency checks
 │   ├── boxplot.py                    # Paired comparison plotting + Wilcoxon significance reporting
@@ -113,5 +113,5 @@ Several scripts contain **hard-coded absolute paths** (Linux and Windows example
 If you use this code, please cite:
 - **StrokeSeg2: Stroke Lesion Segmentation in Clinical Research Workflows**
 
-And for the software application (separate from this repository), refer to:
+For the software application (separate from this repository), refer to:
 - https://strokeseg-doc.readthedocs.io/

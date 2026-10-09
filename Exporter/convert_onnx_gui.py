@@ -1,3 +1,9 @@
+"""
+Module: convert_onnx_gui.py
+Description: Unified Tkinter graphical interface for exporting nnU-Net and 
+             Knowledge Distillation student models to ONNX with quantization options.
+"""
+
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -14,21 +20,25 @@ import onnx
 from onnxconverter_common import float16
 from onnxruntime.quantization import quantize_dynamic, QuantType
 
-# ==========================================
-# CUSTOM LATE FUSION ARCHITECTURE
-# ==========================================
+# Import student models from the Distiller module or local definition
+try:
+    from Distiller.models import (
+        get_large_student, get_medium_student, get_small_student,
+        get_light_student, get_extra_light_student, get_extra_extralight_student,
+        get_nano_student, get_pico_student, get_femto_student
+    )
+except ImportError:
+    # Fallback if structure is flattened or imported locally
+    from models import *
+
 class LateFusionNetwork(nn.Module):
     """
-    Custom Dual-Network Architecture for Late Fusion.
-    Maintains independent encoders/decoders for T1 and FLAIR,
-    merging their output logits voxel-wise.
+    Custom Dual-Network Architecture for Late Fusion (T1 + FLAIR).
     """
-    def __init__(self, unet_t1, unet_flair, num_classes):
+    def __init__(self, unet_t1: nn.Module, unet_flair: nn.Module, num_classes: int):
         super().__init__()
         self.unet_t1 = unet_t1
         self.unet_flair = unet_flair
-        
-        # Learnable 1x1x1 convolutional fusion layer
         self.fusion_conv = nn.Conv3d(
             in_channels=num_classes * 2, 
             out_channels=num_classes, 
@@ -36,8 +46,7 @@ class LateFusionNetwork(nn.Module):
             bias=True
         )
 
-    def forward(self, x):
-        # Split the 2-channel input tensor into independent modalities
+    def forward(self, x: torch.Tensor):
         x_t1 = x[:, 0:1, ...]     
         x_flair = x[:, 1:2, ...]  
         
@@ -55,76 +64,85 @@ class LateFusionNetwork(nn.Module):
             return self.fusion_conv(combined_logits)
 
 
-# ==========================================
-# EXPORTER GUI
-# ==========================================
-class nnUNetExporter:
-    def __init__(self, root):
+class UnifiedONNXExporterApp:
+    """
+    Graphical User Interface for exporting PyTorch medical imaging models to ONNX.
+    """
+    def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("nnU-Net to ONNX Converter (Late Fusion Support)")
-        self.root.geometry("600x600")
+        self.root.title("StrokeSeg-Toolkit - Unified ONNX Exporter")
+        self.root.geometry("600x680")
 
-        # Variables
         self.pth_path = tk.StringVar()
         self.plans_path = tk.StringVar()
         self.dataset_path = tk.StringVar()
         self.save_path = tk.StringVar()
         
-        # New Variable for Late Fusion
-        self.is_late_fusion = tk.BooleanVar(value=False)
-        
-        # Quantization list options
         self.quant_options = ["FP32 (No Quantization)", "FP16 (Recommended for GPU)", "INT8 Dynamic (Recommended for CPU/NPU)"]
         self.selected_quant = tk.StringVar(value=self.quant_options[0])
 
+        self.arch_options = [
+            "Standard nnU-Net (From Plans)", 
+            "Late Fusion (T1 + FLAIR)",
+            "KD Student - Large", 
+            "KD Student - Medium", 
+            "KD Student - Small", 
+            "KD Student - Light",
+            "KD Student - Extra Light",
+            "KD Student - Extra Extra Light",
+            "KD Student - Nano",
+            "KD Student - Pico",
+            "KD Student - Femto"
+        ]
+        self.selected_arch = tk.StringVar(value=self.arch_options[0])
+
         self.create_widgets()
 
-    def create_widgets(self):
+    def create_widgets(self) -> None:
+        """
+        Constructs the graphical layout.
+        """
         pad = {'padx': 15, 'pady': 5}
 
-        # 1. Model Selection
-        tk.Label(self.root, text="1. Select nnU-Net Checkpoint (.pth):", font=("Arial", 10, "bold")).pack(anchor="w", **pad)
+        tk.Label(self.root, text="1. Select Model Architecture:", font=("Arial", 10, "bold")).pack(anchor="w", **pad)
+        arch_menu = tk.OptionMenu(self.root, self.selected_arch, *self.arch_options)
+        arch_menu.pack(fill="x", padx=15)
+
+        tk.Label(self.root, text="2. Select Checkpoint (.pth):", font=("Arial", 10, "bold")).pack(anchor="w", **pad)
         frame_pth = tk.Frame(self.root)
         frame_pth.pack(fill="x", padx=15)
         tk.Entry(frame_pth, textvariable=self.pth_path, width=50).pack(side="left", expand=True, fill="x")
         tk.Button(frame_pth, text="Browse", command=self.browse_pth).pack(side="right", padx=5)
 
-        # 2. Plans Selection
-        tk.Label(self.root, text="2. Select Plans File (.json):", font=("Arial", 10, "bold")).pack(anchor="w", **pad)
+        tk.Label(self.root, text="3. Select Plans File (.json):", font=("Arial", 10, "bold")).pack(anchor="w", **pad)
         frame_plans = tk.Frame(self.root)
         frame_plans.pack(fill="x", padx=15)
         tk.Entry(frame_plans, textvariable=self.plans_path, width=50).pack(side="left", expand=True, fill="x")
         tk.Button(frame_plans, text="Browse", command=self.browse_plans).pack(side="right", padx=5)
 
-        # 3. Dataset Selection
-        tk.Label(self.root, text="3. Select Dataset File (.json):", font=("Arial", 10, "bold")).pack(anchor="w", **pad)
+        tk.Label(self.root, text="4. Select Dataset File (.json):", font=("Arial", 10, "bold")).pack(anchor="w", **pad)
         frame_dataset = tk.Frame(self.root)
         frame_dataset.pack(fill="x", padx=15)
         tk.Entry(frame_dataset, textvariable=self.dataset_path, width=50).pack(side="left", expand=True, fill="x")
         tk.Button(frame_dataset, text="Browse", command=self.browse_dataset).pack(side="right", padx=5)
 
-        # 4. Save Selection
-        tk.Label(self.root, text="4. Save ONNX Output As:", font=("Arial", 10, "bold")).pack(anchor="w", **pad)
+        tk.Label(self.root, text="5. Save ONNX Output As:", font=("Arial", 10, "bold")).pack(anchor="w", **pad)
         frame_save = tk.Frame(self.root)
         frame_save.pack(fill="x", padx=15)
         tk.Entry(frame_save, textvariable=self.save_path, width=50).pack(side="left", expand=True, fill="x")
         tk.Button(frame_save, text="Browse", command=self.browse_save).pack(side="right", padx=5)
 
-        # 5. Architecture Toggle
-        tk.Checkbutton(self.root, text="Enable Late Fusion Architecture (T1 + FLAIR)", 
-                       variable=self.is_late_fusion, font=("Arial", 10, "bold"), fg="#D32F2F").pack(anchor="w", **pad)
-
-        # 6. Quantization Selection
         tk.Label(self.root, text="6. Select Quantization Method:", font=("Arial", 10, "bold")).pack(anchor="w", **pad)
         quant_menu = tk.OptionMenu(self.root, self.selected_quant, *self.quant_options)
         quant_menu.pack(fill="x", padx=15)
 
-        # 7. Action Button
         self.btn = tk.Button(self.root, text="CONVERT TO ONNX", bg="#2196F3", fg="white", 
                              font=("Arial", 12, "bold"), command=self.convert)
         self.btn.pack(pady=20, padx=15, fill="x")
+        
+        return None
 
-    def browse_pth(self):
+    def browse_pth(self) -> None:
         file = filedialog.askopenfilename(filetypes=[("Weights", "*.pth")])
         if file:
             self.pth_path.set(file)
@@ -133,103 +151,121 @@ class nnUNetExporter:
                 trainer_dir = Path(file).parent.parent
                 dataset_dir = trainer_dir.parent
                 plans_file = next(trainer_dir.glob("*Plans*.json"), None)
-                if plans_file: self.plans_path.set(str(plans_file))
+                if plans_file:
+                    self.plans_path.set(str(plans_file))
                 dataset_file = dataset_dir / "dataset.json"
-                if dataset_file.exists(): self.dataset_path.set(str(dataset_file))
+                if dataset_file.exists():
+                    self.dataset_path.set(str(dataset_file))
             except Exception:
-                pass 
+                pass
+        return None
 
-    def browse_plans(self):
+    def browse_plans(self) -> None:
         file = filedialog.askopenfilename(filetypes=[("JSON Files", "*.json")])
-        if file: self.plans_path.set(file)
+        if file:
+            self.plans_path.set(file)
+        return None
 
-    def browse_dataset(self):
+    def browse_dataset(self) -> None:
         file = filedialog.askopenfilename(filetypes=[("JSON Files", "*.json")])
-        if file: self.dataset_path.set(file)
+        if file:
+            self.dataset_path.set(file)
+        return None
 
-    def browse_save(self):
+    def browse_save(self) -> None:
         file = filedialog.asksaveasfilename(defaultextension=".onnx", filetypes=[("ONNX", "*.onnx")])
-        if file: self.save_path.set(file)
+        if file:
+            self.save_path.set(file)
+        return None
 
-    def get_nnunet_model(self, pth_file, plans_file, dataset_file):
-        if not plans_file or not os.path.exists(plans_file):
-            raise FileNotFoundError("Please provide a valid path to the plans.json file.")
-        if not dataset_file or not os.path.exists(dataset_file):
-            raise FileNotFoundError("Please provide a valid path to the dataset.json file.")
-
+    def load_selected_model(self, pth_file: str, plans_file: str, dataset_file: str, arch_type: str):
+        """
+        Dynamically instantiates and loads weights into the selected model architecture.
+        """
         plans = load_json(str(plans_file))
         dataset_json = load_json(str(dataset_file))
         
-        config = plans["configurations"]["3d_fullres"]
         num_input_channels = len(dataset_json["channel_names"])
-        num_output_channels = len(dataset_json["labels"])        
+        num_output_channels = len(dataset_json["labels"])
+        config = plans["configurations"]["3d_fullres"]
         
-        # --- ARCHITECTURE ROUTING ---
-        if self.is_late_fusion.get():
-            # Build two independent 1-channel UNets and wrap them in the LateFusionNetwork
+        if arch_type == "Standard nnU-Net (From Plans)":
+            network = get_network_from_plans(
+                config['architecture']['network_class_name'],
+                config['architecture']['arch_kwargs'],
+                config['architecture']['_kw_requires_import'],
+                num_input_channels, num_output_channels,
+                allow_init=True, deep_supervision=False
+            )
+        elif arch_type == "Late Fusion (T1 + FLAIR)":
             unet_t1 = get_network_from_plans(
                 config['architecture']['network_class_name'],
                 config['architecture']['arch_kwargs'],
                 config['architecture']['_kw_requires_import'],
-                input_channels=1,
-                output_channels=num_output_channels,
-                allow_init=True,
-                deep_supervision=False
+                1, num_output_channels, allow_init=True, deep_supervision=False
             )
             unet_flair = get_network_from_plans(
                 config['architecture']['network_class_name'],
                 config['architecture']['arch_kwargs'],
                 config['architecture']['_kw_requires_import'],
-                input_channels=1,
-                output_channels=num_output_channels,
-                allow_init=True,
-                deep_supervision=False
+                1, num_output_channels, allow_init=True, deep_supervision=False
             )
             network = LateFusionNetwork(unet_t1, unet_flair, num_output_channels)
-            
-            # Sanity check: Ensure dataset knows about the 2 channels
-            if num_input_channels != 2:
-                print(f"Warning: Late Fusion expects 2 input channels, but dataset.json defines {num_input_channels}.")
-                num_input_channels = 2 # Force to 2 for ONNX dummy tensor
-                
+            num_input_channels = 2
+        elif arch_type == "KD Student - Large":
+            network = get_large_student()
+        elif arch_type == "KD Student - Medium":
+            network = get_medium_student()
+        elif arch_type == "KD Student - Small":
+            network = get_small_student()
+        elif arch_type == "KD Student - Light":
+            network = get_light_student()
+        elif arch_type == "KD Student - Extra Light":
+            network = get_extra_light_student()
+        elif arch_type == "KD Student - Extra Extra Light":
+            network = get_extra_extralight_student()
+        elif arch_type == "KD Student - Nano":
+            network = get_nano_student()
+        elif arch_type == "KD Student - Pico":
+            network = get_pico_student()
+        elif arch_type == "KD Student - Femto":
+            network = get_femto_student()
         else:
-            # Build standard single network
-            network = get_network_from_plans(
-                config['architecture']['network_class_name'],
-                config['architecture']['arch_kwargs'],
-                config['architecture']['_kw_requires_import'],
-                num_input_channels,
-                num_output_channels,
-                allow_init=True,
-                deep_supervision=False 
-            )
+            raise ValueError(f"Unknown architecture: {arch_type}")
 
         checkpoint = torch.load(pth_file, map_location='cpu', weights_only=False)
         network.load_state_dict(checkpoint['network_weights'])
         network.eval()
+        
         return network, num_input_channels
 
-    def convert(self):
+    def convert(self) -> None:
+        """
+        Executes the ONNX export and applies requested quantization.
+        """
         try:
             pth_file = self.pth_path.get()
             plans_file = self.plans_path.get()
             dataset_file = self.dataset_path.get()
             out_file = self.save_path.get()
+            arch_type = self.selected_arch.get()
 
             if not pth_file or not plans_file or not dataset_file or not out_file:
-                raise ValueError("Please ensure the Checkpoint, Plans, Dataset, and Output paths are all filled.")
+                raise ValueError("Please ensure all file paths and output names are filled.")
 
             self.btn.config(text="CONVERTING...", state="disabled", bg="#9E9E9E")
             self.root.update()
 
-            model, channels = self.get_nnunet_model(pth_file, plans_file, dataset_file)
+            model, channels = self.load_selected_model(pth_file, plans_file, dataset_file, arch_type)
             dummy_input = torch.randn(1, channels, 128, 128, 128)
             
             tmp_fp32 = out_file if "No Quantization" in self.selected_quant.get() else "temp_fp32.onnx"
             
-            torch.onnx.export(model, dummy_input, tmp_fp32, opset_version=18, 
-                              input_names=['input'], output_names=['output'],
-                              dynamic_axes={'input': {0: 'batch'}, 'output': {0: 'batch'}})
+            torch.onnx.export(
+                model, dummy_input, tmp_fp32, opset_version=18, 
+                input_names=['input'], output_names=['output'],
+                dynamic_axes={'input': {0: 'batch'}, 'output': {0: 'batch'}}
+            )
 
             choice = self.selected_quant.get()
             if "FP16" in choice:
@@ -248,8 +284,13 @@ class nnUNetExporter:
             print(f"Error during conversion: {e}")
         finally:
             self.btn.config(text="CONVERT TO ONNX", state="normal", bg="#2196F3")
+            
+        return None
+
+def main():
+    root = tk.Tk()
+    app = UnifiedONNXExporterApp(root)
+    root.mainloop()
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = nnUNetExporter(root)
-    root.mainloop()
+    main()

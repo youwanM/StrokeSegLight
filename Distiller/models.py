@@ -1,20 +1,24 @@
-import torch.nn as nn
-from dynamic_network_architectures.architectures.unet import ResidualEncoderUNet
+"""
+Module: models.py
+Description: Defines various student architectures for Knowledge Distillation (KD).
+             All models are based on the ResidualEncoderUNet with varying capacities.
+"""
+
 import torch.nn as nn
 from dynamic_network_architectures.architectures.unet import ResidualEncoderUNet
 
-def get_large_student():
+def get_large_student() -> ResidualEncoderUNet:
     """
-    ~ 50M Parameters.
+    Returns a large-capacity student model (~50M Parameters).
     """
-    return ResidualEncoderUNet(
+    model = ResidualEncoderUNet(
         input_channels=1, 
         n_stages=6, 
-        features_per_stage=(28, 56, 112, 224, 320, 320), # Augmentation des canaux
+        features_per_stage=(28, 56, 112, 224, 320, 320),
         conv_op=nn.Conv3d, 
         kernel_sizes=[[3,3,3]]*6, 
         strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
-        n_blocks_per_stage=(1, 2, 3, 3, 3, 3), # On conserve la même profondeur que le Medium
+        n_blocks_per_stage=(1, 2, 3, 3, 3, 3),
         num_classes=2, 
         n_conv_per_stage_decoder=(1, 1, 1, 1, 1),
         conv_bias=True, 
@@ -24,19 +28,21 @@ def get_large_student():
         nonlin_kwargs={'inplace': True}, 
         deep_supervision=False
     )
+    return model
 
-def get_medium_student():
+def get_medium_student() -> ResidualEncoderUNet:
     """
-    ~~ 35M Parameters.
+    Returns a medium-capacity student model (~35M Parameters).
+    Slightly shallower than the baseline teacher.
     """
-    return ResidualEncoderUNet(
+    model = ResidualEncoderUNet(
         input_channels=1, 
         n_stages=6, 
         features_per_stage=(24, 48, 96, 192, 256, 256), 
         conv_op=nn.Conv3d, 
         kernel_sizes=[[3,3,3]]*6, 
         strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
-        n_blocks_per_stage=(1, 2, 3, 3, 3, 3), # Slightly shallower than baseline
+        n_blocks_per_stage=(1, 2, 3, 3, 3, 3),
         num_classes=2, 
         n_conv_per_stage_decoder=(1, 1, 1, 1, 1),
         conv_bias=True, 
@@ -46,12 +52,13 @@ def get_medium_student():
         nonlin_kwargs={'inplace': True}, 
         deep_supervision=False
     )
+    return model
 
-def get_small_student():
+def get_small_student() -> ResidualEncoderUNet:
     """
-    ~ 17M Parameters.
+    Returns a small-capacity student model (~17M Parameters).
     """
-    return ResidualEncoderUNet(
+    model = ResidualEncoderUNet(
         input_channels=1, 
         n_stages=6, 
         features_per_stage=(20, 40, 80, 160, 200, 200), 
@@ -68,12 +75,13 @@ def get_small_student():
         nonlin_kwargs={'inplace': True}, 
         deep_supervision=False
     )
+    return model
 
-def get_light_student():
+def get_light_student() -> ResidualEncoderUNet:
     """
-    ~ 10M Parameters.
+    Returns a light-capacity student model (~10M Parameters).
     """
-    return ResidualEncoderUNet(
+    model = ResidualEncoderUNet(
         input_channels=1, 
         n_stages=6, 
         features_per_stage=(16, 32, 64, 128, 160, 160), 
@@ -90,12 +98,13 @@ def get_light_student():
         nonlin_kwargs={'inplace': True}, 
         deep_supervision=False
     )
+    return model
 
-def get_extra_light_student():
+def get_extra_light_student() -> ResidualEncoderUNet:
     """
-    ~ 5M Parameters.
+    Returns an extra-light-capacity student model (~5M Parameters).
     """
-    return ResidualEncoderUNet(
+    model = ResidualEncoderUNet(
         input_channels=1, 
         n_stages=6, 
         features_per_stage=(12, 24, 48, 80, 96, 128), 
@@ -112,12 +121,13 @@ def get_extra_light_student():
         nonlin_kwargs={'inplace': True}, 
         deep_supervision=False
     )
+    return model
 
-def get_extra_extralight_student():
+def get_extra_extralight_student() -> ResidualEncoderUNet:
     """
-    ~ 2.5M Parameters.
+    Returns an extra-extra-light-capacity student model (~2.5M Parameters).
     """
-    return ResidualEncoderUNet(
+    model = ResidualEncoderUNet(
         input_channels=1, 
         n_stages=6, 
         features_per_stage=(8, 16, 32, 64, 80, 80), 
@@ -134,21 +144,20 @@ def get_extra_extralight_student():
         nonlin_kwargs={'inplace': True}, 
         deep_supervision=False
     )
+    return model
 
-def get_nano_student():
+def get_nano_student() -> ResidualEncoderUNet:
     """
-    ~ 0.5M - 1M Parameters.
+    Returns a nano-capacity student model (~0.5M - 1M Parameters).
     Designed to test the absolute lower bounds of capacity.
     """
-    return ResidualEncoderUNet(
+    model = ResidualEncoderUNet(
         input_channels=1, 
         n_stages=6, 
-        # Halving the initial channels from ExtraExtraLight and flattening the bottleneck
         features_per_stage=(4, 8, 16, 32, 48, 48), 
         conv_op=nn.Conv3d, 
         kernel_sizes=[[3,3,3]]*6, 
         strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
-        # Reduced blocks to the bare minimum for a Residual network
         n_blocks_per_stage=(1, 1, 2, 2, 2, 2), 
         num_classes=2, 
         n_conv_per_stage_decoder=(1, 1, 1, 1, 1),
@@ -159,13 +168,14 @@ def get_nano_student():
         nonlin_kwargs={'inplace': True}, 
         deep_supervision=False
     )
+    return model
 
-def get_pico_student():
+def get_pico_student() -> ResidualEncoderUNet:
     """
-    ~ 100K - 150K Parameters.
-    Strictly smaller than Nano. Drops base channels to 2 while maintaining structural depth.
+    Returns a pico-capacity student model (~100K - 150K Parameters).
+    Strictly smaller than Nano. Drops base channels to 2.
     """
-    return ResidualEncoderUNet(
+    model = ResidualEncoderUNet(
         input_channels=1, 
         n_stages=6, 
         features_per_stage=(2, 4, 8, 16, 24, 24),
@@ -182,13 +192,14 @@ def get_pico_student():
         nonlin_kwargs={'inplace': True}, 
         deep_supervision=False
     )
+    return model
 
-def get_femto_student():
+def get_femto_student() -> ResidualEncoderUNet:
     """
-    ~ 30K - 40K Parameters.
+    Returns a femto-capacity student model (~30K - 40K Parameters).
     An absolute extreme capacity test. The first layer operates with only 1 filter.
     """
-    return ResidualEncoderUNet(
+    model = ResidualEncoderUNet(
         input_channels=1, 
         n_stages=6, 
         features_per_stage=(1, 2, 4, 8, 12, 12), 
@@ -205,14 +216,16 @@ def get_femto_student():
         nonlin_kwargs={'inplace': True}, 
         deep_supervision=False
     )
+    return model
 
+def get_halved_student() -> ResidualEncoderUNet:
     """
-    Halved-capacity Residual Encoder UNet.
+    Returns a halved-capacity Residual Encoder UNet.
     """
-    return ResidualEncoderUNet(
+    model = ResidualEncoderUNet(
         input_channels=1, 
         n_stages=6, 
-        features_per_stage=(16, 32, 64, 128, 160, 160), # Halved Features
+        features_per_stage=(16, 32, 64, 128, 160, 160), 
         conv_op=nn.Conv3d, 
         kernel_sizes=[[3,3,3]]*6, 
         strides=[[1,1,1], [2,2,2], [2,2,2], [2,2,2], [2,2,2], [2,2,2]],
@@ -226,3 +239,4 @@ def get_femto_student():
         nonlin_kwargs={'inplace': True}, 
         deep_supervision=False
     )
+    return model

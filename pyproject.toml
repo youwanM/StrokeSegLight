@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "strokeseg-toolkit"
+version = "1.0.0"
+description = "Toolkit for Stroke Lesion Segmentation: Distillation, Export, Evaluation, and Benchmarking"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "torch>=2.0.0",
+    "pandas",
+    "numpy",
+    "SimpleITK",
+    "scipy",
+    "scikit-image",
+    "matplotlib",
+    "seaborn",
+    "tqdm",
+    "onnx",
+    "onnxruntime",
+    "onnxconverter-common",
+    "nilearn",
+    "nibabel",
+    # nnunetv2 dependencies should be resolved in the environment
+]
+
+[project.scripts]
+# Ces lignes créent automatiquement des commandes exécutables dans le terminal
+strokeseg-exporter = "Exporter.convert_onnx_gui:main"
+strokeseg-benchmark = "Benchmark.analyze_benchmark:main"
